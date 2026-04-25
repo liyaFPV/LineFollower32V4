@@ -1,9 +1,9 @@
+#pragma once
 #include <Arduino.h>
-#include "config.h"
+
+extern float P;
+extern float I;
+extern float D;
 
 float computePID(int err);
 void resetPID();
-void motorsInit();
-void setMotor(int L,int R);
-void moveTest();
-int readLine();
