@@ -93,6 +93,9 @@ SerialBT.println(dTime);
 SerialBT.print("RUN=");
 SerialBT.println(robotRun);
 
+SerialBT.print("centerRecoverEnabled=");
+SerialBT.println(centerRecoverEnabled);
+
 }
 
 void parse(String cmd){
