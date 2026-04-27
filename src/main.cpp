@@ -14,6 +14,10 @@ int dTime=0;
 bool robotRun = false;
 bool started=false;
 
+bool lineWasCenter = false;
+int centerTolerance = 300;   // допуск центра
+int straightTime = 100;      // сколько ехать прямо после потери
+
 int lastErr = 0;
 static const uint32_t EEPROM_MAGIC = 0xA5A55A5A;
 
@@ -32,6 +36,9 @@ void saveSettings() {
     EEPROM.put(addr, timeslep); addr += sizeof(int);
     EEPROM.put(addr, startTimeSleep); addr += sizeof(int);
     EEPROM.put(addr, dTime); addr += sizeof(int);
+    EEPROM.put(addr, centerTolerance); addr += sizeof(int);
+    EEPROM.put(addr, straightTime); addr += sizeof(int);
+
 
     for(int i = 0; i < 8; i++) {
         EEPROM.put(addr, sensorMin[i]); addr += sizeof(int);
@@ -75,6 +82,8 @@ void loadSettings() {
     EEPROM.get(addr, timeslep); addr += sizeof(int);
     EEPROM.get(addr, startTimeSleep); addr += sizeof(int);
     EEPROM.get(addr, dTime); addr += sizeof(int);
+    EEPROM.get(addr, centerTolerance); addr += sizeof(int);
+    EEPROM.get(addr, straightTime); addr += sizeof(int);
 
     for(int i = 0; i < 8; i++) {
         EEPROM.get(addr, sensorMin[i]); addr += sizeof(int);
@@ -97,30 +106,50 @@ void setup(){
 }
 
 void processLine(int err) {
-    if(err !=4000){
-        lastErr=err;
+
+    if(err != 4000){
+        lastErr = err;
+
+        // если линия почти по центру
+        if(abs(err) < centerTolerance)
+            lineWasCenter = true;
+        else
+            lineWasCenter = false;
     }
+
     if(err == 5000){
-        setMotor(BaseSpeed,BaseSpeed);
+        setMotor(BaseSpeed, BaseSpeed);
         delay(timeslep);
         return;
     }
-    if(err==4000){
-        if(lastErr>0)
-            setMotor(ReturnSpeed,0);
+
+    if(err == 4000){
+
+        // если до этого линия была по центру — едем прямо
+        if(lineWasCenter){
+            setMotor(BaseSpeed, BaseSpeed);
+            delay(straightTime);
+            lineWasCenter = false; // один раз используем
+            return;
+        }
+
+        // обычный поиск линии
+        if(lastErr > 0)
+            setMotor(ReturnSpeed, 0);
         else
-            setMotor(0,ReturnSpeed);
+            setMotor(0, ReturnSpeed);
+
         return;
     }
 
-    float correction = computePID(err+trim);
+    float correction = computePID(err + trim);
 
-    int currentSpeed = (abs(err) < 500) ? TurboSpeed : BaseSpeed; // Турбо на прямых
+    int currentSpeed = (abs(err) < 500) ? TurboSpeed : BaseSpeed;
 
     int L = currentSpeed + correction;
     int R = currentSpeed - correction;
 
-    setMotor(L,R);
+    setMotor(L, R);
 }
 
 void loop(){
