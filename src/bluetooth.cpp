@@ -14,6 +14,7 @@ extern int startTimeSleep;
 extern int dTime;
 extern int centerTolerance;
 extern int straightTime;
+extern bool centerRecoverEnabled;
 
 
 BluetoothSerial SerialBT;
@@ -38,8 +39,6 @@ SerialBT.println("T=value (turbo speed)");
 SerialBT.println("RS=value (return speed)");
 SerialBT.println("TR=value (trim rate)");
 SerialBT.println("TS=value (time sleep)");
-SerialBT.println("SS=value (start time sleep)");
-SerialBT.println("DT=value (delay time)");
 
 SerialBT.println("CT=value (centerTolerance)");
 SerialBT.println("ST=value (straightTime)");
@@ -49,6 +48,10 @@ SerialBT.println("SENS -> start manual sensitivity measurement (200 ms average o
 SerialBT.println("SENS=value -> set sensitivity threshold and save");
 SerialBT.println("CONF");
 SerialBT.println("SAVE");
+
+SerialBT.println("SS=value (start time sleep)");
+SerialBT.println("DT=value (delay time)");
+SerialBT.println("CRE=value (centerRecoverEnabled)");
 SerialBT.println("=========================");
 }
 
@@ -149,6 +152,14 @@ centerTolerance=cmd.substring(3).toInt();
 }
 else if(cmd.startsWith("ST=")){
 straightTime=cmd.substring(3).toInt();
+}
+else if(cmd.startsWith("CRE=")){
+if(cmd.substring(4).toInt()==1){
+    centerRecoverEnabled=true;
+}else if (cmd.substring(4).toInt()==0){
+    centerRecoverEnabled=false;
+}
+
 }
 else if(cmd=="CAL"){
 calibrateSensors();

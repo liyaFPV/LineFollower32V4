@@ -15,6 +15,7 @@ bool robotRun = false;
 bool started=false;
 
 bool lineWasCenter = false;
+bool centerRecoverEnabled = false;
 int centerTolerance = 300;   // допуск центра
 int straightTime = 100;      // сколько ехать прямо после потери
 
@@ -38,6 +39,7 @@ void saveSettings() {
     EEPROM.put(addr, dTime); addr += sizeof(int);
     EEPROM.put(addr, centerTolerance); addr += sizeof(int);
     EEPROM.put(addr, straightTime); addr += sizeof(int);
+    EEPROM.put(addr, centerRecoverEnabled); addr += sizeof(bool);
 
 
     for(int i = 0; i < 8; i++) {
@@ -84,6 +86,8 @@ void loadSettings() {
     EEPROM.get(addr, dTime); addr += sizeof(int);
     EEPROM.get(addr, centerTolerance); addr += sizeof(int);
     EEPROM.get(addr, straightTime); addr += sizeof(int);
+    EEPROM.get(addr, centerRecoverEnabled); addr += sizeof(bool);
+    
 
     for(int i = 0; i < 8; i++) {
         EEPROM.get(addr, sensorMin[i]); addr += sizeof(int);
@@ -126,7 +130,7 @@ void processLine(int err) {
     if(err == 4000){
 
         // если до этого линия была по центру — едем прямо
-        if(lineWasCenter){
+        if(centerRecoverEnabled && lineWasCenter){
             setMotor(BaseSpeed, BaseSpeed);
             delay(straightTime);
             lineWasCenter = false; // один раз используем
@@ -158,7 +162,7 @@ void loop(){
         robotRun=!robotRun;
         delay(300);
     }
-    if(true){
+    if(robotRun){
         int err = readLine();
         processLine(err);
     }
