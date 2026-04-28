@@ -5,9 +5,9 @@
 //config
 /*
 v1 stable
-P=10.00
+P=1.00
 I=0.00
-D=10.00
+D=4.00
 BaseSpeed=130
 TurboSpeed=130
 ReturnSpeed=200

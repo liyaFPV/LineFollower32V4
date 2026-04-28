@@ -162,7 +162,7 @@ void loop(){
         robotRun=!robotRun;
         delay(300);
     }
-    if(robotRun){
+    if(true){
         int err = readLine();
         processLine(err);
     }
