@@ -112,59 +112,58 @@ void setup(){
 }
 
 void processLine(int err) {
-
-    if(err != 4000){
+    // Сохраняем последнюю ошибку только если видим линию
+    if(err != 4000 && err != 5000){
         lastErr = err;
+        wasCentered = false; 
     }
+
+    // Перекресток
     if(err == 5000){
         setMotor(BaseSpeed, BaseSpeed);
         delay(timeslep);
         return;
     }
     
+    // ПОТЕРЯ ЛИНИИ (Разрывы и Зигзаги)
     if(err == 4000){
-
-        // если до этого линия была по центру — едем прямо
-        if(centerRecoverEnabled && !wasCentered && (lastErr>=0-centerTolerance && lastErr<=0+centerTolerance)) {
+        // 1. ЛОГИКА РАЗРЫВА: едем прямо, если потеряли в центре
+        if(centerRecoverEnabled && !wasCentered && abs(lastErr) <= centerTolerance) {
             setMotor(BaseSpeed, BaseSpeed);
             delay(straightTime);
             wasCentered = true;
-            SerialBT.println("CRE work");
-        }else{
-            wasCentered = false;
+            return;
         }
 
+        // 2. ЛОГИКА ЗИГЗАГА: если вылетели сбоку, крутимся активнее
+        // Вместо 0 ставим небольшой минус, например -50, чтобы не было "удара"
         if(lastErr > 0)
-            setMotor(ReturnSpeed, 0);
+            setMotor(ReturnSpeed, -80); // Мягкий танковый разворот вправо
         else
-            setMotor(0, ReturnSpeed);
+            setMotor(-80, ReturnSpeed); // Мягкий танковый разворот влево
 
         return;
     }
 
+    // ОБЫЧНОЕ ДВИЖЕНИЕ (ПИД)
     float correction = computePID(err + trim);
 
-    int currentSpeed = (abs(err) < 500) ? TurboSpeed : BaseSpeed;
+    // Убираем резкое переключение Turbo/Base, оставляем одну базу для стабильности
+    int currentSpeed = BaseSpeed; 
 
     int L = currentSpeed + correction;
     int R = currentSpeed - correction;
 
     setMotor(L, R);
-    /*
-    if(millis()-oldmillis >= 100){
-        oldmillis=millis();
-        //printSensors();
-        SerialBT.print(" ERR:");
-        SerialBT.print(err);
-        SerialBT.print(" L;");
-        SerialBT.print(L);
-        SerialBT.print(" R:");
-        SerialBT.print(R);
-        SerialBT.print(" C:");
-        SerialBT.print(correction);
-        SerialBT.println();
+
+    // Логи для отладки ПИДа (убедись, что correction не всегда 255/-255)
+    if(millis() - oldmillis >= 100){
+        oldmillis = millis();
+        /*
+        SerialBT.print("ERR:"); SerialBT.print(err);
+        SerialBT.print(" CORR:"); SerialBT.println(correction);
+        */
     }
-    */
 }
 
 void loop(){
