@@ -4,17 +4,20 @@
 
 //config
 /*
-v1 stable
-P=1.00
+v2 alifa
+P=0.20
 I=0.00
-D=4.00
-BaseSpeed=130
-TurboSpeed=130
-ReturnSpeed=200
+D=0.50
+BaseSpeed=80
+TurboSpeed=100
+ReturnSpeed=80
 trim=0
-timeslep=150
+centerTolerance=500
+straightTime=500
+timeslep=10
 startTimeSleep=0
 delayTime=0
+centerRecoverEnabled=1
 SensorThreshold=4000
 */
 

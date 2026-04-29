@@ -30,13 +30,13 @@ int readLine(){
 
         if(v > sensorThreshold){
             sum += weights[i];
-            count += 1000;
+            count += 1; // Исправлено: прибавляем 1, а не 1000
         }
 
     }
 
     if(count == 0) return 4000;
-    if(count == 8000) return 5000; // Перекрёсток
+    if(count == 8) return 5000; // Исправлено: 8 датчиков видят линию = перекрёсток
 
     return sum / count;
 }
@@ -126,8 +126,10 @@ void printSensors(){
 
         SerialBT.print(analogRead(sensorPins[i]));
         SerialBT.print(" ");
+        Serial.print(analogRead(sensorPins[i]));
+        Serial.print(" ");
 
     }
-
+    Serial.println();
     SerialBT.println();
 }

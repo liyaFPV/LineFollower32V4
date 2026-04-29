@@ -3,6 +3,7 @@
 #include "pid.h"
 #include "motors.h"
 #include "bluetooth.h"
+#include <BluetoothSerial.h>
 
 int BaseSpeed = 140;
 int TurboSpeed = 140;
@@ -14,11 +15,12 @@ int dTime=0;
 bool robotRun = false;
 bool started=false;
 
-bool lineWasCenter = false;
 bool centerRecoverEnabled = false;
+bool wasCentered = false;
 int centerTolerance = 300;   // допуск центра
 int straightTime = 100;      // сколько ехать прямо после потери
-
+extern BluetoothSerial SerialBT;
+int oldmillis=0;
 int lastErr = 0;
 static const uint32_t EEPROM_MAGIC = 0xA5A55A5A;
 
@@ -113,31 +115,25 @@ void processLine(int err) {
 
     if(err != 4000){
         lastErr = err;
-
-        // если линия почти по центру
-        if(abs(err) < centerTolerance)
-            lineWasCenter = true;
-        else
-            lineWasCenter = false;
     }
-
     if(err == 5000){
         setMotor(BaseSpeed, BaseSpeed);
         delay(timeslep);
         return;
     }
-
+    
     if(err == 4000){
 
         // если до этого линия была по центру — едем прямо
-        if(centerRecoverEnabled && lineWasCenter){
+        if(centerRecoverEnabled && !wasCentered && (lastErr>=0-centerTolerance && lastErr<=0+centerTolerance)) {
             setMotor(BaseSpeed, BaseSpeed);
             delay(straightTime);
-            lineWasCenter = false; // один раз используем
-            return;
+            wasCentered = true;
+            SerialBT.println("CRE work");
+        }else{
+            wasCentered = false;
         }
 
-        // обычный поиск линии
         if(lastErr > 0)
             setMotor(ReturnSpeed, 0);
         else
@@ -154,6 +150,21 @@ void processLine(int err) {
     int R = currentSpeed - correction;
 
     setMotor(L, R);
+    /*
+    if(millis()-oldmillis >= 100){
+        oldmillis=millis();
+        //printSensors();
+        SerialBT.print(" ERR:");
+        SerialBT.print(err);
+        SerialBT.print(" L;");
+        SerialBT.print(L);
+        SerialBT.print(" R:");
+        SerialBT.print(R);
+        SerialBT.print(" C:");
+        SerialBT.print(correction);
+        SerialBT.println();
+    }
+    */
 }
 
 void loop(){
@@ -161,7 +172,7 @@ void loop(){
     if(digitalRead(BTN_START)==LOW){
         robotRun=!robotRun;
         delay(300);
-    }
+    } 
     if(true){
         int err = readLine();
         processLine(err);
