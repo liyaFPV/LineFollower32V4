@@ -112,58 +112,63 @@ void setup(){
 }
 
 void processLine(int err) {
-    // Сохраняем последнюю ошибку только если видим линию
     if(err != 4000 && err != 5000){
         lastErr = err;
         wasCentered = false; 
     }
 
-    // Перекресток
     if(err == 5000){
         setMotor(BaseSpeed, BaseSpeed);
         delay(timeslep);
         return;
     }
     
-    // ПОТЕРЯ ЛИНИИ (Разрывы и Зигзаги)
     if(err == 4000){
-        // 1. ЛОГИКА РАЗРЫВА: едем прямо, если потеряли в центре
+        // 1. ЛОГИКА РАЗРЫВА С ПЛАВНЫМ ПОИСКОМ (Скан ~180 градусов)
         if(centerRecoverEnabled && !wasCentered && abs(lastErr) <= centerTolerance) {
+            int searchSpeed = 110; // Пониженная скорость для плавности поиска
+            SerialBT.println("Scanning 180...");
+
+            // Плавный поворот ВЛЕВО (примерно на 90 градусов от центра)
+            setMotor(-searchSpeed, searchSpeed); 
+            long startSearch = millis();
+            while(millis() - startSearch < 400) { // Увеличили время до 400мс
+                if(readLine() != 4000) return; // Нашли линию — выходим
+                btTick(); // Чтобы Bluetooth не отвалился во время цикла
+            }
+
+            // Плавный поворот ВПРАВО (на 180 градусов назад)
+            setMotor(searchSpeed, -searchSpeed);
+            startSearch = millis();
+            while(millis() - startSearch < 800) { // 800мс чтобы пройти дугу 180
+                if(readLine() != 4000) return;
+                btTick();
+            }
+
+            // Если ничего не нашли — возвращаемся в центр и едем прямо
+            setMotor(-searchSpeed, searchSpeed); // Короткий доверт в центр
+            delay(400); 
+            
             setMotor(BaseSpeed, BaseSpeed);
             delay(straightTime);
             wasCentered = true;
             return;
         }
 
-        // 2. ЛОГИКА ЗИГЗАГА: если вылетели сбоку, крутимся активнее
-        // Вместо 0 ставим небольшой минус, например -50, чтобы не было "удара"
+        // 2. ЛОГИКА ЗИГЗАГА (Резкий возврат, если вылетели сбоку)
         if(lastErr > 0)
-            setMotor(ReturnSpeed, -80); // Мягкий танковый разворот вправо
+            setMotor(ReturnSpeed, -ReturnSpeed); 
         else
-            setMotor(-80, ReturnSpeed); // Мягкий танковый разворот влево
+            setMotor(-ReturnSpeed, ReturnSpeed);
 
         return;
     }
 
-    // ОБЫЧНОЕ ДВИЖЕНИЕ (ПИД)
+    // ОБЫЧНОЕ ДВИЖЕНИЕ
     float correction = computePID(err + trim);
-
-    // Убираем резкое переключение Turbo/Base, оставляем одну базу для стабильности
-    int currentSpeed = BaseSpeed; 
-
-    int L = currentSpeed + correction;
-    int R = currentSpeed - correction;
-
+    int L = BaseSpeed + correction;
+    int R = BaseSpeed - correction;
     setMotor(L, R);
-
-    // Логи для отладки ПИДа (убедись, что correction не всегда 255/-255)
-    if(millis() - oldmillis >= 100){
-        oldmillis = millis();
-        /*
-        SerialBT.print("ERR:"); SerialBT.print(err);
-        SerialBT.print(" CORR:"); SerialBT.println(correction);
-        */
-    }
 }
 
 void loop(){
