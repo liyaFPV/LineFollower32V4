@@ -35,6 +35,7 @@ SensorThreshold=4000
 #define S5 6
 #define S6 7
 #define S7 8
+#define BATTERY_PIN 13 // ADC pin для измерения напряжения батареи
 
 /* ===== MOTOR PINS (ESP32-S3) ===== */
 
@@ -45,7 +46,11 @@ SensorThreshold=4000
 
 /* ===== BUTTON ===== */
 
-#define BTN_START 13
+#define BTN_START 17
+
+/* ===== WS2812 RGB LED ===== */
+
+#define LED_PIN 48  // Pin для WS2812
 
 /* ===== PWM ===== */
 

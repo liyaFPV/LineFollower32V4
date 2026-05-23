@@ -2,6 +2,7 @@
 #include "pid.h"
 #include "sensors.h"
 #include "motors.h"
+#include "battery.h"
 
 #include <NimBLEDevice.h>
 
@@ -16,6 +17,9 @@ extern int dTime;
 extern int centerTolerance;
 extern int straightTime;
 extern bool centerRecoverEnabled;
+
+extern float dividerTop;
+extern float dividerBottom;
 
 static bool deviceConnected = false;
 static bool btIntroShown = false;
@@ -89,6 +93,10 @@ blePrint("TS=value (time sleep)");
 blePrint("CT=value (centerTolerance)");
 blePrint("ST=value (straightTime)");
 
+blePrint("R1=value (divider top resistor, ohms)");
+blePrint("R2=value (divider bottom resistor, ohms)");
+blePrint("VOLT -> read battery voltage");
+
 blePrint("CAL");
 blePrint("SENS -> start manual sensitivity measurement (200 ms average output)");
 blePrint("SENS=value -> set sensitivity threshold and save");
@@ -118,6 +126,9 @@ blePrint("straightTime=" + String(straightTime));
 blePrint("timeslep=" + String(timeslep));
 blePrint("startTimeSleep=" + String(startTimeSleep));
 blePrint("delayTime=" + String(dTime));
+blePrint("R1=" + String(dividerTop));
+blePrint("R2=" + String(dividerBottom));
+blePrint("VOLT=" + String(getBatteryVoltage()));
 blePrint("RUN=" + String(robotRun));
 blePrint("centerRecoverEnabled=" + String(centerRecoverEnabled));
 }
@@ -179,6 +190,15 @@ centerTolerance=cmd.substring(3).toInt();
 }
 else if(cmd.startsWith("ST=")){
 straightTime=cmd.substring(3).toInt();
+}
+else if(cmd.startsWith("R1=")){
+dividerTop=cmd.substring(3).toFloat();
+}
+else if(cmd.startsWith("R2=")){
+dividerBottom=cmd.substring(3).toFloat();
+}
+else if(cmd=="VOLT"){
+    blePrint("VOLT=" + String(getBatteryVoltage()));
 }
 else if(cmd.startsWith("CRE=")){
 if(cmd.substring(4).toInt()==1){

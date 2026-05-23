@@ -3,6 +3,8 @@
 #include "pid.h"
 #include "motors.h"
 #include "bluetooth.h"
+#include "ledstrip.h"
+#include "battery.h"
 
 int BaseSpeed = 140;
 int TurboSpeed = 140;
@@ -13,6 +15,12 @@ int startTimeSleep=0;
 int dTime=0;
 bool robotRun = false;
 bool started=false;
+
+// LED States
+RobotState currentState = STATE_IDLE;
+bool batteryLow = false;
+bool batteryCritical = false;
+int lineLostCounter = 0;
 
 bool centerRecoverEnabled = false;
 bool wasCentered = false;
@@ -40,7 +48,8 @@ void saveSettings() {
     EEPROM.put(addr, centerTolerance); addr += sizeof(int);
     EEPROM.put(addr, straightTime); addr += sizeof(int);
     EEPROM.put(addr, centerRecoverEnabled); addr += sizeof(bool);
-
+        EEPROM.put(addr, dividerTop); addr += sizeof(float);
+        EEPROM.put(addr, dividerBottom); addr += sizeof(float);
 
     for(int i = 0; i < 8; i++) {
         EEPROM.put(addr, sensorMin[i]); addr += sizeof(int);
@@ -69,6 +78,8 @@ void loadSettings() {
         ReturnSpeed = 200;
         startTimeSleep = 0;
         dTime = 0;
+        dividerTop = 100000.0f;
+        dividerBottom = 100000.0f;
         return;
     }
 
@@ -87,6 +98,8 @@ void loadSettings() {
     EEPROM.get(addr, centerTolerance); addr += sizeof(int);
     EEPROM.get(addr, straightTime); addr += sizeof(int);
     EEPROM.get(addr, centerRecoverEnabled); addr += sizeof(bool);
+    EEPROM.get(addr, dividerTop); addr += sizeof(float);
+    EEPROM.get(addr, dividerBottom); addr += sizeof(float);
     
 
     for(int i = 0; i < 8; i++) {
@@ -105,17 +118,34 @@ void setup(){
     pinMode(BTN_START, INPUT_PULLUP);
 
     motorsInit();
+    ledStripInit();
+    batteryInit();
     btInit();
     delay(1000);
 }
 
 void processLine(int err) {
+    // Проверка батареи
+    if(batteryCritical) {
+        currentState = STATE_BATTERY_CRITICAL;
+        setMotor(0, 0);
+        return;
+    }
+    if(batteryLow) {
+        currentState = STATE_BATTERY_LOW;
+        setMotor(0, 0);
+        return;
+    }
+    
     if(err != 4000 && err != 5000){
         lastErr = err;
-        wasCentered = false; 
+        wasCentered = false;
+        lineLostCounter = 0;
     }
 
     if(err == 5000){
+        currentState = STATE_LINE_LOST;
+        lineLostCounter++;
         setMotor(BaseSpeed, BaseSpeed);
         delay(timeslep);
         return;
@@ -170,12 +200,27 @@ void processLine(int err) {
 
 void loop(){
     btTick();
+    
+    // Проверяем статус батареи
+    updateBattery(batteryLow, batteryCritical);
+    
+    // Обновляем LED индикатор
+    updateLED(currentState);
+    
     if(digitalRead(BTN_START)==LOW){
         robotRun=!robotRun;
+        currentState = robotRun ? STATE_RUNNING : STATE_IDLE;
         delay(300);
     } 
+    
     if(robotRun){
         int err = readLine();
         processLine(err);
+        // Обновляем состояние после обработки линии
+        if(!batteryCritical && !batteryLow && err != 4000) {
+            currentState = STATE_RUNNING;
+        }
+    } else {
+        currentState = STATE_IDLE;
     }
 }
