@@ -2,7 +2,8 @@
 #include "pid.h"
 #include "sensors.h"
 #include "motors.h"
-#include <BluetoothSerial.h>
+
+#include <NimBLEDevice.h>
 
 extern int BaseSpeed;
 extern int TurboSpeed;
@@ -16,103 +17,126 @@ extern int centerTolerance;
 extern int straightTime;
 extern bool centerRecoverEnabled;
 
-
-BluetoothSerial SerialBT;
+static bool deviceConnected = false;
 static bool btIntroShown = false;
+String rxValue = "";
+
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+NimBLECharacteristic *pCharacteristic;
+
+class ServerCallbacks : public NimBLEServerCallbacks {
+    void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) {
+        deviceConnected = true;
+        btIntroShown = false;
+    }
+
+    void onDisconnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) {
+        deviceConnected = false;
+        pServer->getAdvertising()->start();
+    }
+};
+
+class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+    void onWrite(NimBLECharacteristic *pCharacteristic, ble_gap_conn_desc* desc) {
+
+        std::string value = pCharacteristic->getValue();
+
+        if (value.length() > 0) {
+
+            rxValue = "";
+
+            for (int i = 0; i < value.length(); i++) {
+                rxValue += (char)value[i];
+            }
+
+            rxValue.trim();
+
+            parse(rxValue);
+        }
+    }
+};
+
+void blePrint(String text){
+
+    if(!deviceConnected) return;
+
+    pCharacteristic->setValue(text.c_str());
+    pCharacteristic->notify();
+}
 
 void printHelp(){
 
-SerialBT.println("===== LINE FOLLOWER =====");
+blePrint("===== LINE FOLLOWER =====");
 
-SerialBT.println("AT COMMANDS:");
+blePrint("AT COMMANDS:");
 
-SerialBT.println("AT -> ping");
-SerialBT.println("START");
-SerialBT.println("STOP");
+blePrint("AT -> ping");
+blePrint("START");
+blePrint("STOP");
 
-SerialBT.println("P=value");
-SerialBT.println("I=value");
-SerialBT.println("D=value");
+blePrint("P=value");
+blePrint("I=value");
+blePrint("D=value");
 
-SerialBT.println("B=value (base speed)");
-SerialBT.println("T=value (turbo speed)");
-SerialBT.println("RS=value (return speed)");
-SerialBT.println("TR=value (trim rate)");
-SerialBT.println("TS=value (time sleep)");
+blePrint("B=value (base speed)");
+blePrint("T=value (turbo speed)");
+blePrint("RS=value (return speed)");
+blePrint("TR=value (trim rate)");
+blePrint("TS=value (time sleep)");
 
-SerialBT.println("CT=value (centerTolerance)");
-SerialBT.println("ST=value (straightTime)");
+blePrint("CT=value (centerTolerance)");
+blePrint("ST=value (straightTime)");
 
-SerialBT.println("CAL");
-SerialBT.println("SENS -> start manual sensitivity measurement (200 ms average output)");
-SerialBT.println("SENS=value -> set sensitivity threshold and save");
-SerialBT.println("CONF");
-SerialBT.println("SAVE");
+blePrint("CAL");
+blePrint("SENS -> start manual sensitivity measurement (200 ms average output)");
+blePrint("SENS=value -> set sensitivity threshold and save");
+blePrint("CONF");
+blePrint("SAVE");
 
-SerialBT.println("SS=value (start time sleep)");
-SerialBT.println("DT=value (delay time)");
-SerialBT.println("CRE=value (centerRecoverEnabled)");
-SerialBT.println("=========================");
+blePrint("SS=value (start time sleep)");
+blePrint("DT=value (delay time)");
+blePrint("CRE=value (centerRecoverEnabled)");
+blePrint("=========================");
 }
 
 void printConfig(){
 
-SerialBT.println("CONFIG:");
+blePrint("CONFIG:");
 
-SerialBT.print("P="); SerialBT.println(P);
-SerialBT.print("I="); SerialBT.println(I);
-SerialBT.print("D="); SerialBT.println(D);
+blePrint("P=" + String(P));
+blePrint("I=" + String(I));
+blePrint("D=" + String(D));
 
-SerialBT.print("BaseSpeed=");
-SerialBT.println(BaseSpeed);
-
-SerialBT.print("TurboSpeed=");
-SerialBT.println(TurboSpeed);
-
-SerialBT.print("ReturnSpeed=");
-SerialBT.println(ReturnSpeed);
-
-SerialBT.print("trim=");
-SerialBT.println(trim);
-
-SerialBT.print("centerTolerance=");
-SerialBT.println(centerTolerance);
-
-SerialBT.print("straightTime=");
-SerialBT.println(straightTime);
-
-SerialBT.print("timeslep=");
-SerialBT.println(timeslep);
-
-SerialBT.print("startTimeSleep=");
-SerialBT.println(startTimeSleep);
-
-SerialBT.print("delayTime=");
-SerialBT.println(dTime);
-
-SerialBT.print("RUN=");
-SerialBT.println(robotRun);
-
-SerialBT.print("centerRecoverEnabled=");
-SerialBT.println(centerRecoverEnabled);
-
+blePrint("BaseSpeed=" + String(BaseSpeed));
+blePrint("TurboSpeed=" + String(TurboSpeed));
+blePrint("ReturnSpeed=" + String(ReturnSpeed));
+blePrint("trim=" + String(trim));
+blePrint("centerTolerance=" + String(centerTolerance));
+blePrint("straightTime=" + String(straightTime));
+blePrint("timeslep=" + String(timeslep));
+blePrint("startTimeSleep=" + String(startTimeSleep));
+blePrint("delayTime=" + String(dTime));
+blePrint("RUN=" + String(robotRun));
+blePrint("centerRecoverEnabled=" + String(centerRecoverEnabled));
 }
 
 void parse(String cmd){
 
 cmd.trim();
 
-if(cmd=="AT") SerialBT.println("OK");
+if(cmd=="AT") blePrint("OK");
 
 else if(cmd=="START"){
 robotRun=true;
-SerialBT.println("RUN");
+blePrint("RUN");
 }
 
 else if(cmd=="STOP"){
 robotRun=false;
 stopMotors();
-SerialBT.println("STOP");
+blePrint("STOP");
 }
 
 else if(cmd.startsWith("P=")){
@@ -175,7 +199,7 @@ else if(cmd.startsWith("SENS=")){
 int value = cmd.substring(5).toInt();
 setSensorThreshold(value);
 saveSettings();
-SerialBT.println("SAVED");
+blePrint("SAVED");
 }
 
 else if(cmd=="CONF"){
@@ -185,7 +209,7 @@ printSensorThreshold();
 
 else if(cmd=="SAVE"){
 saveSettings();
-SerialBT.println("SAVED");
+blePrint("SAVED");
 }
 
 else if(cmd=="HELP"){
@@ -196,14 +220,36 @@ printHelp();
 
 void btInit(){
 
-SerialBT.begin("LineFollower");
+NimBLEDevice::init("LineFollower");
+
+NimBLEServer *pServer = NimBLEDevice::createServer();
+pServer->setCallbacks(new ServerCallbacks());
+
+NimBLEService *pService = pServer->createService(SERVICE_UUID);
+
+pCharacteristic = pService->createCharacteristic(
+                     CHARACTERISTIC_UUID,
+                     NIMBLE_PROPERTY::READ |
+                     NIMBLE_PROPERTY::WRITE |
+                     NIMBLE_PROPERTY::NOTIFY
+                   );
+
+pCharacteristic->createDescriptor("2902");
+pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+
+pService->start();
+
+NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+pAdvertising->addServiceUUID(SERVICE_UUID);
+pAdvertising->start();
+
 btIntroShown = false;
 }
 
 void btTick(){
 
-    if(SerialBT.hasClient() && !btIntroShown) {
-        SerialBT.println("READY");
+    if(deviceConnected && !btIntroShown) {
+        blePrint("READY");
         printHelp();
         printConfig();
         printSensorThreshold();
@@ -211,13 +257,4 @@ void btTick(){
     }
 
     manualSensitivityTick();
-
-    if(!SerialBT.available()) return;
-
-    String cmd=SerialBT.readStringUntil('\n');
-
-    parse(cmd);
-
-    SerialBT.print("> ");
-
 }

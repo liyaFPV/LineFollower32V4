@@ -3,7 +3,6 @@
 #include "pid.h"
 #include "motors.h"
 #include "bluetooth.h"
-#include <BluetoothSerial.h>
 
 int BaseSpeed = 140;
 int TurboSpeed = 140;
@@ -19,7 +18,6 @@ bool centerRecoverEnabled = false;
 bool wasCentered = false;
 int centerTolerance = 300;   // допуск центра
 int straightTime = 100;      // сколько ехать прямо после потери
-extern BluetoothSerial SerialBT;
 int oldmillis=0;
 int lastErr = 0;
 static const uint32_t EEPROM_MAGIC = 0xA5A55A5A;
@@ -127,7 +125,6 @@ void processLine(int err) {
         // 1. ЛОГИКА РАЗРЫВА С ПЛАВНЫМ ПОИСКОМ (Скан ~180 градусов)
         if(centerRecoverEnabled && !wasCentered && abs(lastErr) <= centerTolerance) {
             int searchSpeed = 110; // Пониженная скорость для плавности поиска
-            SerialBT.println("Scanning 180...");
 
             // Плавный поворот ВЛЕВО (примерно на 90 градусов от центра)
             setMotor(-searchSpeed, searchSpeed); 
@@ -177,7 +174,7 @@ void loop(){
         robotRun=!robotRun;
         delay(300);
     } 
-    if(true){
+    if(robotRun){
         int err = readLine();
         processLine(err);
     }

@@ -2,16 +2,11 @@
 #include "config.h"
 
 void motorsInit(){
-    // Настраиваем 4 канала PWM (по 2 на каждый мотор)
-    ledcSetup(0, PWM_FREQ, PWM_RES); // Лево Вперед
-    ledcSetup(1, PWM_FREQ, PWM_RES); // Лево Назад
-    ledcSetup(2, PWM_FREQ, PWM_RES); // Право Вперед
-    ledcSetup(3, PWM_FREQ, PWM_RES); // Право Назад
-
-    ledcAttachPin(motorL, 0);
-    ledcAttachPin(motorRL, 1);
-    ledcAttachPin(motorR, 2);
-    ledcAttachPin(motorRR, 3);
+    // Настраиваем PWM для моторов (ESP32-S3 новый API)
+    ledcAttach(motorL, PWM_FREQ, PWM_RES);    // Лево Вперед
+    ledcAttach(motorRL, PWM_FREQ, PWM_RES);   // Лево Назад
+    ledcAttach(motorR, PWM_FREQ, PWM_RES);    // Право Вперед
+    ledcAttach(motorRR, PWM_FREQ, PWM_RES);   // Право Назад
 }
 
 void setMotor(int L, int R){
@@ -21,20 +16,20 @@ void setMotor(int L, int R){
 
     // Левый мотор
     if (L >= 0) {
-        ledcWrite(0, L);
-        ledcWrite(1, 0);
+        ledcWrite(motorL, L);
+        ledcWrite(motorRL, 0);
     } else {
-        ledcWrite(0, 0);
-        ledcWrite(1, -L); 
+        ledcWrite(motorL, 0);
+        ledcWrite(motorRL, -L); 
     }
 
     // Правый мотор
     if (R >= 0) {
-        ledcWrite(2, R);
-        ledcWrite(3, 0);
+        ledcWrite(motorR, R);
+        ledcWrite(motorRR, 0);
     } else {
-        ledcWrite(2, 0);
-        ledcWrite(3, -R);
+        ledcWrite(motorR, 0);
+        ledcWrite(motorRR, -R);
     }
 }
 

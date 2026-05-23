@@ -25,27 +25,27 @@ SensorThreshold=4000
 /* ===== EEPROM ===== */
 #define EEPROM_SIZE 512
 
-/* ===== SENSOR PINS ===== */
+/* ===== SENSOR PINS (ESP32-S3 ADC1) ===== */
 
-#define S0 36
-#define S1 39
-#define S2 34
-#define S3 35
-#define S4 32
-#define S5 33
-#define S6 25
-#define S7 26
+#define S0 1
+#define S1 2
+#define S2 3
+#define S3 4
+#define S4 5
+#define S5 6
+#define S6 7
+#define S7 8
 
-/* ===== MOTOR PINS ===== */
+/* ===== MOTOR PINS (ESP32-S3) ===== */
 
-#define motorR 22
-#define motorRR 23
-#define motorL 18
-#define motorRL 19
+#define motorR 9
+#define motorRR 10
+#define motorL 11
+#define motorRL 12
 
 /* ===== BUTTON ===== */
 
-#define BTN_START 15
+#define BTN_START 13
 
 /* ===== PWM ===== */
 

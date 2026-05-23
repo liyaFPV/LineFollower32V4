@@ -1,8 +1,7 @@
 #include "sensors.h"
 #include "config.h"
-#include <BluetoothSerial.h>
+#include "bluetooth.h"
 
-extern BluetoothSerial SerialBT;
 extern void saveSettings();
 
 int sensorPins[8] = {S0,S1,S2,S3,S4,S5,S6,S7};
@@ -47,9 +46,9 @@ void startManualSensitivity(){
     manualSensNext = manualSensStart + 500;
     manualCount = 0;
     manualSum = 0;
-    SerialBT.println("SENS_MANUAL START");
-    SerialBT.println("Averages will be sent every 500 ms for 10 sec");
-    SerialBT.println("Send SENS=value at any time to save threshold");
+    blePrint("SENS_MANUAL START");
+    blePrint("Averages will be sent every 500 ms for 10 sec");
+    blePrint("Send SENS=value at any time to save threshold");
 }
 
 void manualSensitivityTick(){
@@ -67,7 +66,7 @@ void manualSensitivityTick(){
         if(manualCount > 0) {
             avg = manualSum / (manualCount * 8);
         }
-        SerialBT.println(avg);
+        blePrint(String(avg));
         manualCount = 0;
         manualSum = 0;
         manualSensNext += 500;
@@ -75,26 +74,23 @@ void manualSensitivityTick(){
 
     if(now - manualSensStart >= 10000){
         manualSensActive = false;
-        SerialBT.println("SENS_MANUAL DONE");
-        SerialBT.println("Send SENS=value to save threshold");
+        blePrint("SENS_MANUAL DONE");
+        blePrint("Send SENS=value to save threshold");
     }
 }
 
 void setSensorThreshold(int threshold){
     sensorThreshold = constrain(threshold, 0, 4095);
-    SerialBT.print("SENS=");
-    SerialBT.print(sensorThreshold);
-    SerialBT.println(" OK");
+    blePrint("SENS=" + String(sensorThreshold) + " OK");
 }
 
 void printSensorThreshold(){
-    SerialBT.print("SensorThreshold=");
-    SerialBT.println(sensorThreshold);
+    blePrint("SensorThreshold=" + String(sensorThreshold));
 }
 
 void calibrateSensors(){
 
-    SerialBT.println("CALIBRATION START");
+    blePrint("CALIBRATION START");
 
     for(int i=0;i<8;i++){
         sensorMin[i] = 4095;
@@ -115,21 +111,19 @@ void calibrateSensors(){
         delay(10);
     }
 
-    SerialBT.println("CALIBRATION DONE");
+    blePrint("CALIBRATION DONE");
     saveSettings();
-    SerialBT.println("CALIBRATION SAVED");
+    blePrint("CALIBRATION SAVED");
 }
 
 void printSensors(){
-
+    String output = "";
     for(int i=0;i<8;i++){
-
-        SerialBT.print(analogRead(sensorPins[i]));
-        SerialBT.print(" ");
-        Serial.print(analogRead(sensorPins[i]));
+        int reading = analogRead(sensorPins[i]);
+        output += String(reading) + " ";
+        Serial.print(reading);
         Serial.print(" ");
-
     }
     Serial.println();
-    SerialBT.println();
+    blePrint(output);
 }
