@@ -3,8 +3,11 @@
 
 void btInit();
 void btTick();
-void blePrint(String text);
+
+void blePrint(const String& text);
+void parse(const String& cmd);
+
 void printHelp();
 void printConfig();
-void parse(String cmd);
+
 void saveSettings();

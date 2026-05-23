@@ -1,38 +1,49 @@
 #include "motors.h"
 #include "config.h"
 
-void motorsInit(){
-    // Настраиваем PWM для моторов (ESP32-S3 новый API)
-    ledcAttach(motorL, PWM_FREQ, PWM_RES);    // Лево Вперед
-    ledcAttach(motorRL, PWM_FREQ, PWM_RES);   // Лево Назад
-    ledcAttach(motorR, PWM_FREQ, PWM_RES);    // Право Вперед
-    ledcAttach(motorRR, PWM_FREQ, PWM_RES);   // Право Назад
+void motorsInit() {
+
+    // LEFT FORWARD
+    ledcSetup(PWM_CH_LF, PWM_FREQ, PWM_RES);
+    ledcAttachPin(motorL, PWM_CH_LF);
+
+    // LEFT BACKWARD
+    ledcSetup(PWM_CH_LB, PWM_FREQ, PWM_RES);
+    ledcAttachPin(motorRL, PWM_CH_LB);
+
+    // RIGHT FORWARD
+    ledcSetup(PWM_CH_RF, PWM_FREQ, PWM_RES);
+    ledcAttachPin(motorR, PWM_CH_RF);
+
+    // RIGHT BACKWARD
+    ledcSetup(PWM_CH_RB, PWM_FREQ, PWM_RES);
+    ledcAttachPin(motorRR, PWM_CH_RB);
 }
 
-void setMotor(int L, int R){
-    // Разрешаем диапазон от -255 до 255
+void setMotor(int L, int R) {
+
     L = constrain(L, -255, 255);
     R = constrain(R, -255, 255);
 
-    // Левый мотор
+    // LEFT MOTOR
     if (L >= 0) {
-        ledcWrite(motorL, L);
-        ledcWrite(motorRL, 0);
+        ledcWrite(PWM_CH_LF, L);
+        ledcWrite(PWM_CH_LB, 0);
     } else {
-        ledcWrite(motorL, 0);
-        ledcWrite(motorRL, -L); 
+        ledcWrite(PWM_CH_LF, 0);
+        ledcWrite(PWM_CH_LB, -L);
     }
 
-    // Правый мотор
+    // RIGHT MOTOR
     if (R >= 0) {
-        ledcWrite(motorR, R);
-        ledcWrite(motorRR, 0);
+        ledcWrite(PWM_CH_RF, R);
+        ledcWrite(PWM_CH_RB, 0);
     } else {
-        ledcWrite(motorR, 0);
-        ledcWrite(motorRR, -R);
+        ledcWrite(PWM_CH_RF, 0);
+        ledcWrite(PWM_CH_RB, -R);
     }
 }
 
-void stopMotors(){
-    setMotor(0,0);
+void stopMotors() {
+    setMotor(0, 0);
 }
